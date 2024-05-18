@@ -1,43 +1,59 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 
-// Event listener for the button
 document.getElementById('signButton').addEventListener('click', async () => {
-    const api = await connect();
     const statusElement = document.getElementById('status');
-
     statusElement.innerText = 'Preparing transaction...';
 
-    const call = await constructRemarkCall(api); // Changed function name to match the call
-    const precompileAddress = '0x0000000000000000000000000000000000000006';
+    try {
+        const api = await connect();
+        const call = await constructRemarkCall(api);
+        const precompileAddress = '0x0000000000000000000000000000000000000006';
 
-    statusElement.innerText = 'Sending transaction...';
+        statusElement.innerText = 'Sending transaction...';
 
-    if (window.ethereum) {
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (window.ethereum) {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             const from = accounts[0];
+
+            console.log('Using account:', from);
+
+            // Prepare the transaction parameters
+            const nonce = await window.ethereum.request({
+                method: 'eth_getTransactionCount',
+                params: [from, 'latest'],
+            });
+
+            const txParams = {
+                from,
+                to: precompileAddress,
+                value: 0,
+                data: call,
+                gas: '75000000',
+                gasPrice: '21000',
+                nonce,
+            };
+
+            console.log('Transaction parameters:', txParams);
+
+            // Send the transaction using MetaMask
             const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
-                params: [{
-                    from,
-                    to: precompileAddress,
-                    data: call,
-                    gas: '6000000', // Adjust gas limit as needed
-                }],
+                params: [txParams],
             });
+
             console.log('Transaction sent with hash:', txHash);
             statusElement.innerText = `Transaction sent with hash: ${txHash}`;
-        } catch (error) {
-            statusElement.innerText = 'Error sending transaction.';
-            console.error('Error sending transaction:', error);
+        } else {
+            statusElement.innerText = 'MetaMask is not installed.';
+            console.error('MetaMask is not installed.');
         }
-    } else {
-        statusElement.innerText = 'MetaMask is not installed.';
-        console.error('MetaMask is not installed.');
+    } catch (error) {
+        statusElement.innerText = 'Error sending transaction.';
+        console.error('Error sending transaction:', error);
     }
 });
 
-// Function to connect to the Substrate node
 async function connect() {
     try {
         await window.ethereum.request({
@@ -118,11 +134,22 @@ async function connect() {
     }
 }
 
-// Function to construct the remark call
 async function constructRemarkCall(api) {
-    const remarkMessage = 'Hello, Substrate!';
+    const remarkMessage = 'Fuck You!';
     const call = api.tx.system.remark(remarkMessage);
 
     // Encode the call
-    return call.toHex();
+    const hexCall = Buffer.from(call.toU8a()).toString('hex');
+    return hexCall;
+}
+
+async function constructTransferCall(api) {
+    const recipient = '0x016EdF4FDb344FEB3743De09d91eb0311D14fF85'; // Replace with a valid recipient address
+    const amount = '0x16345785d8a0000'; // 1 ether in wei
+
+    const call = api.tx.balances.transferAllowDeath(recipient, amount);
+
+    // Encode the call
+    const hexCall = call.toHex();
+    return hexCall;
 }
