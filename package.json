@@ -11,7 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@chainsafe/metamask-polkadot-adapter": "^0.6.0",
     "@polkadot/api": "^11.0.3",
+    "@polkadot/extension-dapp": "^0.47.4",
     "@polkadot/keyring": "^12.6.2",
     "@polkadot/util": "^12.6.2",
     "ethers": "^5.7.2"
